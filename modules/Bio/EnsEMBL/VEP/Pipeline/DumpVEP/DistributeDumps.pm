@@ -54,28 +54,12 @@ sub run {
   }
   else {
     $dir = $self->required_param('pipeline_dir').'/dumps';
-    $self->DistributeRest($dir,$version);
     $self->DistributeProduction($dir);
     $self->DistributeWeb($dir);
   }
 }
 
 
-#Distribute the REST dumps, only for human
-sub DistributeRest{
-  my ($self,$dir,$version) = @_;
-  make_path("$dir/rest") if (!-d "$dir/rest");
-  foreach my $assembly (qw/GRCh37 GRCh38/) {
-    foreach my $suffix('', qw(_refseq _merged)) {
-      my $file = "homo_sapiens$suffix\_vep_$version\_$assembly\_tabixconverted.tar.gz";
-      if (-e "$dir/$file") {
-        $self->link_file("$dir/$file", "$dir/rest/$file");
-      } else {
-        $self->warning("$file doesn't exist");
-      }
-    }
-  }
-}
 
 #Distribute the Production dumps for the FTP site
 sub DistributeProduction {
@@ -113,30 +97,62 @@ sub DistributeWeb{
   my ($self,$dir) = @_;
   make_path("$dir/web") if (!-d "$dir/web");
   opendir (my $dh, $dir) or die $!;
-  while (my $content = readdir($dh)) {
-    if ($content =~ /collection$/)
-    {
-      make_path("$dir/web/$content") if (!-d "$dir/web/$content");
-      opendir (my $dh_collection, "$dir/$content") or die $!;
-      while (my $file_collection = readdir($dh_collection)) {
-        if ($file_collection =~ /gz$/ && $file_collection !~ /tabix/) {
-          $self->link_file("$dir/$content/$file_collection", "$dir/web/$content/$file_collection");
-        }
-        elsif ($file_collection =~ /tabix/) {
-          my $file_collection_no_tabix = $file_collection;
-          $file_collection_no_tabix =~ s/\_tabixconverted//;
-          $self->link_file("$dir/$content/$file_collection", "$dir/web/$content/$file_collection_no_tabix");
+  my @dir_content = readdir($dh);
+
+  ## Check if these look like EG collection databases
+  my @collections = grep { /collection$/ } @dir_content;
+  foreach my $collection (@collections){
+    make_path("$dir/web/$collection") if (!-d "$dir/web/$collection");
+    opendir (my $dh_collection, "$dir/$collection") or die $!;
+    my @collection_content = readdir( $dh_collection);
+
+     ## copy tabix converted files to web dir if available
+     my @tars = grep { /tabixconverted.tar.gz$/ } @collection_content;
+      if( scalar(@tars) >1){
+        foreach my $file_collection(@tars){
+          my $file_no_tabix = $file_collection;
+          $file_no_tabix =~ s/\_tabixconverted//;
+          $self->link_file("$dir/$collection/$file_collection", "$dir/web/$collection/$file_no_tabix");
         }
       }
+      else{
+        ## if not, assume there is no variation data to index and copy original files
+        my @tars = grep { /tar.gz$/ } @collection_content;
+        if( scalar(@tars) >1){
+          foreach my $file_collection(@tars){
+            $self->link_file("$dir/$collection/$file_collection", "$dir/web/$collection/$file_collection");
+          }
+        }
+        else{
+          $self->warning( "Error - no collection sets to distribute in " . $dir);
+        }
+
       $dh_collection->close();
     }
-    elsif ($content =~ /gz$/ && $content !~ /tabix/) {
-      $self->link_file("$dir/$content", "$dir/web/$content");
-    }
-    elsif ($content =~ /tabix/) {
+  }
+
+  ## non-collection databases
+
+  ## if variation data is available, a tabix-indexed set should be available to use
+  my @tars = grep { /tabixconverted.tar.gz$/ } @dir_content;
+
+  if( scalar(@tars) >1){
+    foreach my $content(@tars){
       my $file_no_tabix = $content;
       $file_no_tabix =~ s/\_tabixconverted//;
       $self->link_file("$dir/$content", "$dir/web/$file_no_tabix");
+    }
+  }
+  else{
+    ## for other species take the original tarball
+    my @tars = grep { /tar.gz$/ } readdir($dh);
+    if( scalar(@tars) >1){
+      foreach my $content(@tars){
+        $self->link_file("$dir/$content", "$dir/web/$content");
+      }
+    }
+    else{
+      $self->warning( "Error - no non-collections data to distribute in ". $dir);
     }
   }
   $dh->close();
