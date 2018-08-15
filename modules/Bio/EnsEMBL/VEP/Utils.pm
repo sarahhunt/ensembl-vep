@@ -217,8 +217,12 @@ sub numberify {
       if(ref($ref->{$k}) =~ /HASH|ARRAY/) {
         numberify($ref->{$k});
       }
-      else {
-        $ref->{$k} = $ref->{$k} + 0 if defined($ref->{$k}) && !$exempt->{$k} && looks_like_number($ref->{$k});
+      elsif($exempt->{$k}){
+        ##force to be treated as a string
+        $ref->{$k} = $ref->{$k} . "";
+      }
+      else{
+        $ref->{$k} = $ref->{$k} + 0 if defined($ref->{$k}) && looks_like_number($ref->{$k});
       }
     }
   }
