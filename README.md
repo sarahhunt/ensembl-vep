@@ -15,7 +15,7 @@
 * [Haplosaurus](#haplo)
   * [Usage](#haplousage)
   * [Output](#haplooutput)
-  * [REST] (#haploREST)
+  * [REST](#haploREST)
   * [Flags](#haploflags)
 * [Variant Recoder](#recoder)
   * [Usage](#recoderusage)
