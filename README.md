@@ -15,6 +15,7 @@
 * [Haplosaurus](#haplo)
   * [Usage](#haplousage)
   * [Output](#haplooutput)
+  * [REST] (#haploREST)
   * [Flags](#haploflags)
 * [Variant Recoder](#recoder)
   * [Usage](#recoderusage)
@@ -104,7 +105,7 @@ The default output format is a simple tab-delimited file reporting all observed 
 The altered haplotype sequences can be obtained by switching to JSON output using `--json` which will display them by default.
 Each transcript analysed is summarised as a JSON object written to one line of the output file.
 
-The JSON output structure matches the format of the  [transcript haplotype REST endpoint](haploREST).
+The JSON output structure matches the format of the  [transcript haplotype REST endpoint](#haploREST).
 
 You may exclude fields in the JSON from being exported with `--dont_export field1,field2`. This may be used, for example, to exclude the full haplotype sequence and aligned sequences from the output with `--dont_export seq,aligned_sequences`.
 
